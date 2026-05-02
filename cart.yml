@@ -1,0 +1,85 @@
+- name: Setup Cart component
+  hosts: all
+  become: yes
+  tasks:
+    - name: create a application user
+      ansible.builtin.user:
+        name: appuser
+        system: yes
+        shell: /bin/false
+        create_home: no
+    
+    - name: Copy SystemD Service file
+      ansible.builtin.copy:
+        src: cart.service
+        dest: /etc/systemd/system/cart.service
+
+    - name: Install nodejs
+      ansible.builtin.shell: curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
+
+    - name: Install nodejs
+      ansible.builtin.dnf:
+        name: nodejs
+        state: present
+
+    - name: remove app folder from application
+      ansible.builtin.file:
+        path: /app
+        state: absent
+
+    - name: Create app folder in again
+      ansible.builtin.file:
+        path: /app
+        state: directory
+
+    - name: Download application content
+      ansible.builtin.unarchive:
+        src: https://raw.githubusercontent.com/raghudevopsb89/roboshop-microservices/main/artifacts/cart.zip
+        dest: /app
+        remote_src: yes
+    
+    - name: Download App Dependencies
+      ansible.builtin.shell: npm install --production
+      args: 
+        chdir: /app
+    
+    - name: Apply permission for application folder
+      ansible.builtin.file:
+        path: /app
+        owner: appuser
+        group: appuser
+        recurse: yes
+        mode: 'o-rwx'
+
+    - name: Start Service
+      ansible.builtin.systemd_service:
+        name: cart
+        state: restarted
+        enabled: yes
+        daemon_reload: yes
+    
+
+
+
+
+
+
+# curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
+# dnf install -y nodejs
+# cp cart.service /etc/systemd/system/cart.service
+
+
+# useradd -r -s /bin/false appuser
+# rm -rf /app
+# mkdir -p /app
+
+# curl -L -o /tmp/cart.zip https://raw.githubusercontent.com/raghudevopsb89/roboshop-microservices/main/artifacts/cart.zip
+# cd /app
+# unzip /tmp/cart.zip
+# npm install --production
+# chown -R appuser:appuser /app
+# chmod o-rwx /app -R
+
+# systemctl daemon-reload
+# systemctl enable cart
+# systemctl restart cart
