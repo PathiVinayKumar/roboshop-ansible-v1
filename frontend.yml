@@ -1,24 +1,60 @@
 - name: Setup Frontend component
   hosts: all
+  become: yes
   tasks:
     - name: Install nginx
       ansible.builtin.dnf:
         name: nginx
         state: present
 
+    - name: Copy nginx config file
+      copy:
+        src: nginx.conf
+        dest: /etc/nginx/nginx.conf
+        
+    - name: Setup NodeJs repo
+      ansible.builtin.shell: curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
+
+    - name: Install node NodeJs
+      ansible.builtin.dnf:
+        name: nodejs
+        state: present
+
+    - name: removing a directory
+      ansible.builtin.file:
+        path: /tmp/frontend
+        state: absent
+    
+    - name: creating a directory
+      ansible.builtin.file:
+        path: /tmp/frontend
+        state: directory
+
+    - name: downloading the zip file and archive it
+      ansible.builtin.unarchive:
+        src: https://raw.githubusercontent.com/raghudevopsb89/roboshop-microservices/main/artifacts/frontend.zip
+        dest: /tmp/frontend
+        remote_src: yes
+
+    - name: Install npm
+      ansible.builtin.dnf:
+        name: npm
+        state: present
+
+    - name: Start Nginx
+      ansible.builtin.systemd_service:
+        name: nginx
+        state: restarted
+        enabled: yes
 
 
-
-# cp nginx.conf /etc/nginx/nginx.conf
-
-# curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
-# dnf install -y nodejs
 
 # curl -L -o /tmp/frontend.zip https://raw.githubusercontent.com/raghudevopsb89/roboshop-microservices/main/artifacts/frontend.zip
 # rm -rf /tmp/frontend
 # mkdir -p /tmp/frontend
 # cd /tmp/frontend
 # unzip /tmp/frontend.zip
+
 # npm install
 # npm run build
 # rm -rf /usr/share/nginx/html/*
